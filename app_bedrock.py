@@ -18,21 +18,19 @@ from langchain.callbacks.base import BaseCallbackHandler
 import streamlit as st
 import tempfile
 
-from dotenv import load_dotenv
 
-load_dotenv()
+ASTRA_DB_APPLICATION_TOKEN = st.secrets["ASTRA_DB_APPLICATION_TOKEN"]
 
-ASTRA_DB_APPLICATION_TOKEN = os.environ["ASTRA_DB_APPLICATION_TOKEN"]
-ASTRA_VECTOR_ENDPOINT = os.environ["ASTRA_VECTOR_ENDPOINT"]
+ASTRA_VECTOR_ENDPOINT = st.secrets["ASTRA_VECTOR_ENDPOINT"]
 ASTRA_DB_KEYSPACE = "default_keyspace"
 ASTRA_DB_COLLECTION = "awssummit"
 
-OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 
-AWS_ACCESS_KEY_ID = os.environ["AWS_ACCESS_KEY_ID"]
-AWS_SECRET_ACCESS_KEY = os.environ["AWS_SECRET_ACCESS_KEY"]
+AWS_ACCESS_KEY_ID = st.secrets["AWS_ACCESS_KEY_ID"]
+AWS_SECRET_ACCESS_KEY = st.secrets["AWS_SECRET_ACCESS_KEY"]
 
-os.environ["LANGCHAIN_PROJECT"] = "blueillusion"
+os.environ["LANGCHAIN_PROJECT"] = "awssummit"
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 
 
