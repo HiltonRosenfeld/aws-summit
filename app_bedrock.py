@@ -30,6 +30,9 @@ OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 AWS_ACCESS_KEY_ID = st.secrets["AWS_ACCESS_KEY_ID"]
 AWS_SECRET_ACCESS_KEY = st.secrets["AWS_SECRET_ACCESS_KEY"]
 
+os.environ["AWS_ACCESS_KEY_ID"] = AWS_ACCESS_KEY_ID
+os.environ["AWS_SECRET_ACCESS_KEY"] = AWS_SECRET_ACCESS_KEY
+
 os.environ["LANGCHAIN_PROJECT"] = "awssummit"
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 
