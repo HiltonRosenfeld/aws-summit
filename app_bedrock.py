@@ -7,10 +7,9 @@ from langchain_community.chat_models.bedrock import BedrockChat
 #from langchain_openai import OpenAIEmbeddings
 from langchain_community.embeddings import BedrockEmbeddings
 
-#from langchain_community.vectorstores.astradb import AstraDB
 from langchain_astradb import AstraDBVectorStore
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders.pdf import PyPDFLoader
 from langchain.prompts.chat import ChatPromptTemplate
 from langchain_astradb import AstraDBChatMessageHistory
 from langchain.memory import ConversationBufferWindowMemory
@@ -20,6 +19,8 @@ from langchain.callbacks.base import BaseCallbackHandler
 
 import streamlit as st
 import tempfile
+
+from helpers import website_to_txt
 
 
 ASTRA_DB_APPLICATION_TOKEN = st.secrets["ASTRA_DB_APPLICATION_TOKEN"]
@@ -78,6 +79,56 @@ global memory
 global bedrock_runtime
 
 
+#############
+### Login ###
+#############
+# Close off the app using a password
+def check_password():
+    """Returns `True` if the user had a correct password."""
+
+    def login_form():
+        """Form with widgets to collect user information"""
+        with st.form("credentials"):
+            st.text_input('Username', key='username')
+            #st.text_input('Password', type='password', key='password')
+            st.form_submit_button('Login', on_click=password_entered)
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        #if st.session_state['username'] in st.secrets['passwords'] and hmac.compare_digest(st.session_state['password'], st.secrets.passwords[st.session_state['username']]):
+        if len(st.session_state['username']) > 5:
+            st.session_state['password_correct'] = True
+            st.session_state.user = st.session_state['username']
+            #del st.session_state['password']  # Don't store the password.
+        else:
+            st.session_state['password_correct'] = False
+
+    # Return True if the username + password is validated.
+    if st.session_state.get('password_correct', False):
+        return True
+
+    # Show inputs for username + password.
+    login_form()
+    if "password_correct" in st.session_state:
+        st.error('😕 Username must be 6 or more characters')
+    return False
+
+def logout():
+    del st.session_state.password_correct
+    del st.session_state.user
+    del st.session_state.messages
+    load_chat_history.clear()
+    load_memory.clear()
+    load_retriever.clear()
+    
+
+# Check for username/password and set the username accordingly
+if not check_password():
+    st.stop()  # Do not continue if check_password is not True.
+
+username = st.session_state.user
+
+
 #######################
 ### Resources Cache ###
 #######################
@@ -105,7 +156,6 @@ def load_embedding():
         #model_id="amazon.titan-embed-text-v1",
         model_id="cohere.embed-english-v3",
     )
-    
 
 # Cache Vector Store for future runs
 @st.cache_resource(show_spinner='Getting the Vector Store from Astra DB...')
@@ -126,7 +176,10 @@ def load_retriever():
     print("load_retriever")
     # Get the Retriever from the Vectorstore
     return vectorstore.as_retriever(
-        search_kwargs={"k": top_k_vectorstore}
+        search_kwargs={
+            "k": top_k_vectorstore,
+            'filter': {'owner': username},
+            }
     )
 
 # Cache Chat Model for future runs
@@ -165,7 +218,7 @@ def load_model(model_id="anthropic.claude-v2"):
 def load_chat_history():
     print("load_chat_history")
     return AstraDBChatMessageHistory(
-        session_id=ASTRA_DB_COLLECTION,
+        session_id=username,
         token=ASTRA_DB_APPLICATION_TOKEN,
         api_endpoint=ASTRA_VECTOR_ENDPOINT,
         namespace=ASTRA_DB_KEYSPACE,
@@ -184,16 +237,13 @@ def load_memory():
     )
 
 # Cache prompt
-# 
-#Include the price of the product if found in the context.
-#You're a helpful AI assistant tasked to answer the user's questions
-#You're friendly and you answer extensively with multiple sentences. 
-#You prefer to use bulletpoints to summarize.
 @st.cache_data()
 def load_prompt():
     print("load_prompt")
-    template = """You are Jerry Seinfeld speaking at a conference for technology professionals.
+    template = """You're a helpful AI assistant tasked to answer the user's questions
 Focus on the user's needs and provide the best possible answer.
+You're friendly and you answer extensively with multiple sentences.
+You prefer to use bulletpoints to summarize.
 Do not include any information other than what is provied in the context below.
 Do not include images in your response.
 If you don't know the answer, just say 'I do not know the answer'.
@@ -216,17 +266,18 @@ Answer in English"""
 ### Functions ###
 #################
 
+
 # Function for Vectorizing uploaded data into Astra DB
-def vectorize_text(uploaded_files):
+def vectorize_files(uploaded_files):
     for uploaded_file in uploaded_files:
         if uploaded_file is not None:
             
             # Write to temporary file
             temp_dir = tempfile.TemporaryDirectory()
             file = uploaded_file
-            print(f"""Processing: {file.name}""")
+            print(f"Processing: {file.name}")
             temp_filepath = os.path.join(temp_dir.name, file.name)
-            print(f"""Processing: {temp_filepath}""")
+            print(f"Processing: {temp_filepath}")
             with open(temp_filepath, 'wb') as f:
                 f.write(file.getvalue())
 
@@ -238,7 +289,7 @@ def vectorize_text(uploaded_files):
 
             if uploaded_file.name.endswith('txt'):
                 file = [uploaded_file.read().decode()]
-                texts = text_splitter.create_documents(file, [{'source': uploaded_file.name}])
+                texts = text_splitter.create_documents(file, [{'source': uploaded_file.name, 'owner': username}])
                 vectorstore.add_documents(texts)
                 st.info(f"{len(texts)} chunks loaded into Astra DB")            
 
@@ -247,10 +298,43 @@ def vectorize_text(uploaded_files):
                 docs = []
                 loader = PyPDFLoader(temp_filepath)
                 docs.extend(loader.load())
-
                 pages = text_splitter.split_documents(docs)
-                vectorstore.add_documents(pages)  
+                vectorstore.add_documents(pages)
                 st.info(f"{len(pages)} pages loaded into Astra DB")
+
+#
+# Function for ingesting Text
+#
+def vectorize_text(text):
+    print(f"Processing: {len(text)} characters")
+    # Create the text splitter
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size = 1500,
+        chunk_overlap  = 100
+    )
+    # Split the text into chunks with Metadata
+    texts = text_splitter.create_documents([text], [{'source': 'text', 'owner': username}])
+    # Store the chunks in Astra DB
+    vectorstore.add_documents(texts)
+    st.info(f"{len(texts)} chunks loaded into Astra DB")
+
+#
+# Function for ingesting URLs
+#
+def vectorize_url(url):
+    print(f"Processing: {url}")
+    # Create the text splitter
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size = 1500,
+        chunk_overlap  = 100
+    )
+    # Get the text from the URL
+    title, text = website_to_txt(url)
+    # Split the text into chunks with Metadata
+    texts = text_splitter.create_documents([text], [{'source': url, 'title': title, 'owner': username}])
+    # Store the chunks in Astra DB
+    vectorstore.add_documents(texts)
+    st.info(f"{len(texts)} chunks loaded into Astra DB")
 
 
 
@@ -268,6 +352,7 @@ if "messages" not in st.session_state:
 ### Main ###
 ############
 
+
 # Write the welcome text
 st.markdown(Path('welcome.md').read_text())
 
@@ -275,6 +360,10 @@ st.markdown(Path('welcome.md').read_text())
 with st.sidebar:
     st.image('./public/logo.svg')
     st.text('')
+
+# Logout button
+with st.sidebar:
+    st.button(f"Logout '{username}'", on_click=logout)
 
 # Initialize
 with st.sidebar:
@@ -298,29 +387,34 @@ with st.sidebar:
             submitted = st.form_submit_button('Upload')
             if submitted:
                 with st.spinner('Chunking, Embedding, and Uploading to Astra'):
-                    vectorize_text(uploaded_files)
+                    vectorize_files(uploaded_files)
         
-        #st.button("Upload file to Astra DB", on_click=vectorize_text(uploaded_files))
-
         with st.form('load_url'):
             # option 2: enter URL
             url = st.text_input("Enter URL", "")
-            # option 3: enter text
-            text = st.text_area("Enter Text", "")
-            
             submitted = st.form_submit_button('Embed')
             if submitted:
-                #st.write(embedding.embed_query(text))
-                print("Submitted")
+                if url is not None and url != "":
+                    with st.spinner('Embedding and Uploading to Astra'):
+                        vectorize_url(url)
+        
+        with st.form('load_text'):
+            # option 3: enter text
+            text = st.text_area("Enter Text", "")
+            submitted = st.form_submit_button('Embed')
+            if submitted:
+                if text is not None and text != "":
+                    with st.spinner('Embedding and Uploading to Astra'):
+                        vectorize_text(text)
 
 
     # Add a drop down to choose the LLM model
     with st.container(border=True):
         model_id = st.selectbox('Choose the LLM model', [
+            'amazon.titan-text-express-v1',
             'meta.llama2-13b-chat-v1',
             'meta.llama2-70b-chat-v1',
-            'amazon.titan-text-express-v1',
-            'anthropic.claude-v2', 
+            'anthropic.claude-v2',
             'anthropic.claude-3-sonnet-20240229-v1:0',
             #'openai.gpt-3.5',
             #'openai.gpt-4'
