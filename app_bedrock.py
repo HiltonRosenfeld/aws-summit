@@ -7,11 +7,13 @@ from langchain_community.chat_models.bedrock import BedrockChat
 #from langchain_openai import OpenAIEmbeddings
 from langchain_community.embeddings import BedrockEmbeddings
 
-from langchain_community.vectorstores.astradb import AstraDB
+#from langchain_community.vectorstores.astradb import AstraDB
+from langchain_astradb import AstraDBVectorStore
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.prompts.chat import ChatPromptTemplate
-from langchain.memory import ConversationBufferWindowMemory, AstraDBChatMessageHistory
+from langchain_astradb import AstraDBChatMessageHistory
+from langchain.memory import ConversationBufferWindowMemory
 from langchain.schema import HumanMessage, AIMessage
 from langchain.schema.runnable import RunnableMap
 from langchain.callbacks.base import BaseCallbackHandler
@@ -100,7 +102,8 @@ def load_embedding():
     # Get the Bedrock Embedding
     return BedrockEmbeddings(
         client=bedrock_runtime,
-        #region_name="us-east-1"
+        #model_id="amazon.titan-embed-text-v1",
+        model_id="cohere.embed-english-v3",
     )
     
 
@@ -109,7 +112,7 @@ def load_embedding():
 def load_vectorstore():
     print(f"load_vectorstore: {ASTRA_DB_KEYSPACE} / {ASTRA_DB_COLLECTION}")
     # Get the load_vectorstore store from Astra DB
-    return AstraDB(
+    return AstraDBVectorStore(
         embedding=embedding,
         namespace=ASTRA_DB_KEYSPACE,
         collection_name=ASTRA_DB_COLLECTION,
