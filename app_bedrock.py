@@ -1,8 +1,9 @@
 import os
 from pathlib import Path
+import boto3
 
 from langchain_openai import ChatOpenAI
-from langchain_community.chat_models import BedrockChat
+from langchain_community.chat_models.bedrock import BedrockChat
 #from langchain_openai import OpenAIEmbeddings
 from langchain_community.embeddings import BedrockEmbeddings
 
@@ -72,11 +73,23 @@ global retriever
 global model
 global chat_history
 global memory
+global bedrock_runtime
 
 
 #######################
 ### Resources Cache ###
 #######################
+
+# Cache boto3 session for future runs
+@st.cache_resource(show_spinner='Getting the Boto Session...')
+def load_boto_client():
+    print("load_boto_client")
+    session = boto3.Session(
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+        region_name=AWS_DEFAULT_REGION
+    )
+    return boto3.client("bedrock-runtime")
 
 # Cache OpenAI Embedding for future runs
 @st.cache_resource(show_spinner='Getting the Embedding Model...')
@@ -85,8 +98,10 @@ def load_embedding():
     # Get the OpenAI Embedding
     #return OpenAIEmbeddings(model="text-embedding-3-small")
     # Get the Bedrock Embedding
-    return BedrockEmbeddings(credentials_profile_name="default", region_name="us-east-1")
-
+    return BedrockEmbeddings(
+        client=bedrock_runtime,
+        #region_name="us-east-1"
+    )
     
 
 # Cache Vector Store for future runs
@@ -125,17 +140,22 @@ def load_model(model_id="anthropic.claude-v2"):
             temperature=0.2,
             model=gpt_version,
             streaming=True,
-            verbose=True
+            verbose=False
             )
     # else use Bedrock model
     return BedrockChat(
-        credentials_profile_name="default",
-        region_name="us-east-1",
+        client=bedrock_runtime,
         model_id=model_id,
         streaming=True,
         #callbacks=[StreamingStdOutCallbackHandler()],
         model_kwargs={"temperature": 0.1},
     )
+# Anthropic Claude - NOT WORKING - required keys prompt, max_tokens_to_sample
+# Amazon Titan - WORKING
+# Meta Lllama - WORKING
+
+
+
 
 # Cache Chat History for future runs
 @st.cache_resource(show_spinner='Getting the Message History from Astra DB...')
@@ -255,6 +275,7 @@ with st.sidebar:
 
 # Initialize
 with st.sidebar:
+    bedrock_runtime = load_boto_client()
     embedding = load_embedding()
     vectorstore = load_vectorstore()
     retriever = load_retriever()
@@ -293,12 +314,13 @@ with st.sidebar:
     # Add a drop down to choose the LLM model
     with st.container(border=True):
         model_id = st.selectbox('Choose the LLM model', [
-            'anthropic.claude-v2', 
-            'amazon.titan-text-express-v1',
-            'ai21.j2-mid-v1', 
             'meta.llama2-13b-chat-v1',
-            'openai.gpt-3.5',
-            'openai.gpt-4'
+            'meta.llama2-70b-chat-v1',
+            'amazon.titan-text-express-v1',
+            'anthropic.claude-v2', 
+            'anthropic.claude-3-sonnet-20240229-v1:0',
+            #'openai.gpt-3.5',
+            #'openai.gpt-4'
             ])
         model = load_model(model_id)
 
