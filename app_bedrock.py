@@ -89,6 +89,7 @@ def check_password():
     def login_form():
         """Form with widgets to collect user information"""
         with st.form("credentials"):
+            st.caption('Using a unique name will keep your content seperate from other users.')
             st.text_input('Username', key='username')
             #st.text_input('Password', type='password', key='password')
             st.form_submit_button('Login', on_click=password_entered)
@@ -414,8 +415,8 @@ with st.sidebar:
             'amazon.titan-text-express-v1',
             'meta.llama2-13b-chat-v1',
             'meta.llama2-70b-chat-v1',
-            'anthropic.claude-v2',
-            'anthropic.claude-3-sonnet-20240229-v1:0',
+            #'anthropic.claude-v2',
+            #'anthropic.claude-3-sonnet-20240229-v1:0',
             #'openai.gpt-3.5',
             #'openai.gpt-4'
             ])

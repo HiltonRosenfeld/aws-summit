@@ -7,4 +7,16 @@
 - Elegant APIs, powerful ecosystem integrations
 - Built in security, compliance
 
-### Relevancy at massive scale
+### Instructions
+
+1. Provide content
+
+    - Use the sidebar to provide content that will be referenced in the RAG workflow.
+    - You can choose from:
+        - Uploading a file
+        - Providing a URL 
+        - Providing text
+
+2. Select your preferred LLM from the available Bedrock Foundation Models
+
+3. Ask a question
