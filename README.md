@@ -17,6 +17,11 @@ The following attributes must be provided in your secrets.toml.
     - AWS_SECRET_ACCESS_KEY
     - AWS_DEFAULT_REGION
 
+    If you want to use LangSmith, then these are also required:
+
+    - LANGCHAIN_ENDPOINT
+    - LANGCHAIN_API_KEY
+
 2. Run the app
 
     `streamlit run app_bedrock.py`

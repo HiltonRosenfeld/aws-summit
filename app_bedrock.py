@@ -40,7 +40,6 @@ os.environ["AWS_DEFAULT_REGION"] = AWS_DEFAULT_REGION
 os.environ["LANGCHAIN_PROJECT"] = "awssummit"
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 
-
 print("Started")
 
 
