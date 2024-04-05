@@ -328,11 +328,14 @@ def vectorize_url(url):
     )
     # Get the text from the URL
     title, text = website_to_txt(url)
-    # Split the text into chunks with Metadata
-    texts = text_splitter.create_documents([text], [{'source': url, 'title': title, 'owner': username}])
-    # Store the chunks in Astra DB
-    vectorstore.add_documents(texts)
-    st.info(f"{len(texts)} chunks loaded into Astra DB")
+    if title == "Error":
+        st.info(f"Error: {text}")
+    else:
+        # Split the text into chunks with Metadata
+        texts = text_splitter.create_documents([text], [{'source': url, 'title': title, 'owner': username}])
+        # Store the chunks in Astra DB
+        vectorstore.add_documents(texts)
+        st.info(f"{len(texts)} chunks loaded into Astra DB")
 
 
 

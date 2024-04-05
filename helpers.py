@@ -35,7 +35,9 @@ def website_to_txt(source: str):
     try:
         page = requests.get(source)
         if page.status_code != 200:
-            print(f"Failed to retrieve the job posting at {source}. Status code: {page.status_code}")
+            error = f"Failed to retrieve the job posting at {source}. Status code: {page.status_code}"
+            print(error)
+            return "Error", error
 
         soup = BeautifulSoup(page.text, 'html.parser')
         title = soup.find('title')
@@ -45,8 +47,7 @@ def website_to_txt(source: str):
         text = clean_text(text)
 
     except Exception as e:
-        print(f"Could not get the description from the URL: {source}")
-        print(e)
-        exit()
+        error = f"Could not get the description from the URL: {source}\n{e}"
+        return "Error", error
 
     return title, text
