@@ -479,7 +479,8 @@ if question := st.chat_input("What's up?"):
         print(f"Using chain: {chain}")
 
         # Call the chain and stream the results into the UI
-        response = chain.invoke({'question': question, 'chat_history': history}, config={'callbacks': [StreamHandler(response_placeholder)]})
+        #response = chain.invoke({'question': question, 'chat_history': history}, config={'callbacks': [StreamHandler(response_placeholder)]})
+        response = chain.invoke({'question': question, 'chat_history': history}, config={'callbacks': [StreamHandler(response_placeholder)], "tags": [username]})
         print(f"Response: {response}")
         #print(embedding.embed_query(question))
         content = response.content
