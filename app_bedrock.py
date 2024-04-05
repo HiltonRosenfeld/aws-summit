@@ -33,6 +33,8 @@ AWS_ACCESS_KEY_ID = st.secrets["AWS_ACCESS_KEY_ID"]
 AWS_SECRET_ACCESS_KEY = st.secrets["AWS_SECRET_ACCESS_KEY"]
 AWS_DEFAULT_REGION = st.secrets["AWS_DEFAULT_REGION"]
 
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+
 os.environ["AWS_ACCESS_KEY_ID"] = AWS_ACCESS_KEY_ID
 os.environ["AWS_SECRET_ACCESS_KEY"] = AWS_SECRET_ACCESS_KEY
 os.environ["AWS_DEFAULT_REGION"] = AWS_DEFAULT_REGION
@@ -337,6 +339,21 @@ def vectorize_url(url):
         vectorstore.add_documents(texts)
         st.info(f"{len(texts)} chunks loaded into Astra DB")
 
+#
+# Function for deleting an individual user's context
+#
+def delete_user_context(username):
+    # Initialize the client
+    from astrapy.db import AstraDB
+    db = AstraDB(
+        token=ASTRA_DB_APPLICATION_TOKEN,
+        api_endpoint=ASTRA_VECTOR_ENDPOINT,
+        namespace=ASTRA_DB_KEYSPACE,
+    )
+    collection = db.collection(collection_name=ASTRA_DB_COLLECTION)
+    # Delete the user's context
+    deleted_count = collection.delete_many(filter={"metadata.owner": username})
+    print(deleted_count)
 
 
 #####################
@@ -432,15 +449,12 @@ with st.sidebar:
                 memory.clear()
 
     # Delete Context
-    if username == 'hiltonr':
-        with st.form('delete_context'):
-            st.caption("Delete the context and conversational history.")
-            submitted = st.form_submit_button("Delete context")
-            if submitted:
-                with st.spinner("Removing context and history..."):
-                    vectorstore.clear()
-                    chat_history.clear()
-                    st.session_state.messages = [AIMessage(content="How may I help you today?")]
+    with st.form('delete_context'):
+        st.caption("Delete the context")
+        submitted = st.form_submit_button("Delete context")
+        if submitted:
+            with st.spinner("Removing context..."):
+                delete_user_context(username)
 
 
 # Draw all messages, both user and agent so far (every time the app reruns)
@@ -479,10 +493,8 @@ if question := st.chat_input("What's up?"):
         print(f"Using chain: {chain}")
 
         # Call the chain and stream the results into the UI
-        #response = chain.invoke({'question': question, 'chat_history': history}, config={'callbacks': [StreamHandler(response_placeholder)]})
         response = chain.invoke({'question': question, 'chat_history': history}, config={'callbacks': [StreamHandler(response_placeholder)], "tags": [username]})
         print(f"Response: {response}")
-        #print(embedding.embed_query(question))
         content = response.content
 
         # Write the sources used
