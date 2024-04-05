@@ -1,6 +1,6 @@
 # RAG on Bedrock
 
-This demo is available to run on [Streamlit](https://aws-summit-sydney-2024-demo.streamlit.app), or you can run the demo yourself using the instrcutions below
+This demo is available to run on [Streamlit Cloud](https://aws-summit-sydney-2024-demo.streamlit.app), or you can run the demo yourself using the instrcutions below
 
 
 ### Setup to run your own instance
