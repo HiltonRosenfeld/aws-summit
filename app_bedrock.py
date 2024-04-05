@@ -431,14 +431,15 @@ with st.sidebar:
                 memory.clear()
 
     # Delete Context
-    with st.form('delete_context'):
-        st.caption("Delete the context and conversational history.")
-        submitted = st.form_submit_button("Delete context")
-        if submitted:
-            with st.spinner("Removing context and history..."):
-                vectorstore.clear()
-                chat_history.clear()
-                st.session_state.messages = [AIMessage(content="How may I help you today?")]
+    if username == 'hiltonr':
+        with st.form('delete_context'):
+            st.caption("Delete the context and conversational history.")
+            submitted = st.form_submit_button("Delete context")
+            if submitted:
+                with st.spinner("Removing context and history..."):
+                    vectorstore.clear()
+                    chat_history.clear()
+                    st.session_state.messages = [AIMessage(content="How may I help you today?")]
 
 
 # Draw all messages, both user and agent so far (every time the app reruns)
