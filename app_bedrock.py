@@ -430,8 +430,8 @@ with st.sidebar:
     # Add a drop down to choose the LLM model
     with st.container(border=True):
         model_id = st.selectbox('Choose the LLM model', [
-            'meta.llama2-13b-chat-v1',
             'meta.llama2-70b-chat-v1',
+            'meta.llama2-13b-chat-v1',
             'amazon.titan-text-express-v1',
             #'anthropic.claude-v2',
             #'anthropic.claude-3-sonnet-20240229-v1:0',
