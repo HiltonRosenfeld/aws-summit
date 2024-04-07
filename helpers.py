@@ -44,7 +44,7 @@ def website_to_txt(source: str):
         title = title.get_text().strip()
         body = soup.find('body')
         text = body.get_text()
-        text = clean_text(text)
+        #text = clean_text(text)
 
     except Exception as e:
         error = f"Could not get the description from the URL: {source}\n{e}"

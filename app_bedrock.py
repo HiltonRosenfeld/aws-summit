@@ -204,7 +204,7 @@ def load_model(model_id="anthropic.claude-v2"):
         model_id=model_id,
         streaming=True,
         #callbacks=[StreamingStdOutCallbackHandler()],
-        model_kwargs={"temperature": 0.1},
+        model_kwargs={"temperature": 0.2},
     )
 # Anthropic Claude - NOT WORKING - required keys prompt, max_tokens_to_sample
 # Amazon Titan - WORKING
@@ -236,28 +236,29 @@ def load_memory():
         output_key='answer',
     )
 
+
+# Focus on the user's needs and provide the best possible answer.
+# You're friendly and you answer extensively with multiple sentences.
+# You prefer to use bulletpoints to summarize.
+# Do not include images in your response.
+# Answer in English
 # Cache prompt
 @st.cache_data()
 def load_prompt():
     print("load_prompt")
     template = """You're a helpful AI assistant tasked to answer the user's questions
-Focus on the user's needs and provide the best possible answer.
-You're friendly and you answer extensively with multiple sentences.
-You prefer to use bulletpoints to summarize.
 Do not include any information other than what is provied in the context below.
-Do not include images in your response.
 If you don't know the answer, just say 'I do not know the answer'.
 
 Use the following context to answer the question:
 {context}
 
-Use the previous chat history to answer the question:
+Use the previous chat history to provide a more personalized response:
 {chat_history}
 
 Question:
 {question}
-
-Answer in English"""
+"""
 
     return ChatPromptTemplate.from_messages([("system", template)])
 
@@ -499,20 +500,21 @@ if question := st.chat_input("What's up?"):
 
         # Write the sources used
         relevant_documents = retriever.get_relevant_documents(question)
-        content += f"""
+        if len(relevant_documents) > 0:
+            content += f"""
 
-*{"The following context was used for this answer:"}:*  
-"""
-        sources = []
-        for doc in relevant_documents:
-            source = doc.metadata['source']
-            page_content = doc.page_content
-            #title = doc.metadata['title']
-            if source not in sources:
-                content += f"""📙 :orange[{os.path.basename(os.path.normpath(source))}]  
-"""
-                sources.append(source)
-        print(f"Used sources: {sources}")
+    *{"The following context was used for this answer:"}:*  
+    """
+            sources = []
+            for doc in relevant_documents:
+                source = doc.metadata['source']
+                page_content = doc.page_content
+                #title = doc.metadata['title']
+                if source not in sources:
+                    content += f"""📙 :orange[{os.path.basename(os.path.normpath(source))}]  
+    """
+                    sources.append(source)
+            print(f"Used sources: {sources}")
 
         # Write the final answer without the cursor
         response_placeholder.markdown(content)
