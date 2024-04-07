@@ -31,9 +31,10 @@ def clean_text(text: str):
 def website_to_txt(source: str):
     title = ""
     text = ""
+    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
 
     try:
-        page = requests.get(source)
+        page = requests.get(source, headers=headers)
         if page.status_code != 200:
             error = f"Failed to retrieve the job posting at {source}. Status code: {page.status_code}"
             print(error)
@@ -44,7 +45,7 @@ def website_to_txt(source: str):
         title = title.get_text().strip()
         body = soup.find('body')
         text = body.get_text()
-        #text = clean_text(text)
+        text = clean_text(text)
 
     except Exception as e:
         error = f"Could not get the description from the URL: {source}\n{e}"
