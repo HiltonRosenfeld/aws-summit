@@ -503,8 +503,8 @@ if question := st.chat_input("What's up?"):
         if len(relevant_documents) > 0:
             content += f"""
 
-    *{"The following context was used for this answer:"}:*  
-    """
+*{"The following context was used for this answer:"}*  
+"""
             sources = []
             for doc in relevant_documents:
                 source = doc.metadata['source']
@@ -512,7 +512,7 @@ if question := st.chat_input("What's up?"):
                 #title = doc.metadata['title']
                 if source not in sources:
                     content += f"""📙 :orange[{os.path.basename(os.path.normpath(source))}]  
-    """
+"""
                     sources.append(source)
             print(f"Used sources: {sources}")
 
