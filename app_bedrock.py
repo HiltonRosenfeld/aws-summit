@@ -483,14 +483,27 @@ if question := st.chat_input("What's up?"):
         history = memory.load_memory_variables({})
         print(f"Using memory: {history}")
 
-        inputs = RunnableMap({
-            'context': lambda x: retriever.get_relevant_documents(x['question']),
-            'chat_history': lambda x: x['chat_history'],
-            'question': lambda x: x['question']
-        })
-        print(f"Using inputs: {inputs}")
+        # Customise for Anthropic models
+        if 'anthropic' in model_id:
+            system_message = "You are a helpful assistant."
+            human_message = "Give me a joke"
+            messages = [
+                ("system", system_message),
+                ("human", human_message)
+            ]
+            prompt = ChatPromptTemplate.from_messages(messages)
+            chain = prompt | model
 
-        chain = inputs | prompt | model
+        else:
+            inputs = RunnableMap({
+                'context': lambda x: retriever.get_relevant_documents(x['question']),
+                'chat_history': lambda x: x['chat_history'],
+                'question': lambda x: x['question']
+            })
+            chain = inputs | prompt | model
+            print(f"Using inputs: {inputs}")
+
+        
         print(f"Using chain: {chain}")
 
         # Call the chain and stream the results into the UI
@@ -526,3 +539,4 @@ if question := st.chat_input("What's up?"):
         # Add the answer to the messages session state
         st.session_state.messages.append(AIMessage(content=content))
 
+# Add a space at bottom of screen
